@@ -11,6 +11,7 @@ start = '2010-01-01'
 end = '2019-12-31'
 
 st.title('Stock Price Prediction')
+st.text('Made with ❤️ by Pradhumna Guruprasad')
 
 userInput = st.text_input('Enter a Stock Ticker: ', 'AAPL')
 df = data.DataReader(userInput, 'yahoo', start, end)
