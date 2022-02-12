@@ -23,14 +23,17 @@ for i in range(stocksTicker.shape[0]):
 
 option = st.sidebar.selectbox(
     'Select one symbol', tuple(ticker))
+optionO = option
 option = option.split('-')[0]
 today = datetime.date.today()
 before = today - datetime.timedelta(days=7000)
 start_date = st.sidebar.date_input('Start date', before)
 end_date = st.sidebar.date_input('End date', today)
+choose_date = st.sidebar.date_input('Choose date', today)
+choose = choose_date
 if start_date < end_date:
-    st.sidebar.success('Start date: `%s`\n\nEnd date:`%s`' %
-                       (start_date, end_date))
+    st.sidebar.success('Start date: `%s`\n\nEnd date:`%s`\n\nPredicting For:`%s`' %
+                       (start_date, end_date, choose))
 else:
     st.sidebar.error('Error: End date must fall after start date.')
 
@@ -40,7 +43,7 @@ try:
 
     df = data.DataReader(option, 'yahoo', start_date, end_date)
 
-    st.subheader(f'{option} Stock Price from {start_date} to {end_date}')
+    st.subheader(f'{optionO}: Stock Price from {start_date} to {end_date}')
     st.write(df.describe())
 
     # Visualize the data
@@ -65,7 +68,7 @@ try:
     plt.xlabel('Time')
     plt.ylabel('Closing Price')
     plt.legend(['100 Day Moving Average',
-               '200 Day Moving Average', 'Closing Price'])
+                '200 Day Moving Average', 'Closing Price'])
     st.pyplot(fig)
 
     # Splitting the data into training and testing sets
@@ -116,6 +119,35 @@ try:
     plt.ylabel('Stock Price')
     plt.legend()
     st.pyplot(fig2)
+
+    choose_date = str(choose_date)
+    choose_date = datetime.datetime.strptime(
+        choose_date, '%Y-%m-%d') - datetime.timedelta(days=1)
+    choose_date = str(choose_date).split()[0]
+
+    choose_end = datetime.datetime.strptime(
+        choose_date, '%Y-%m-%d') - datetime.timedelta(days=100)
+    choose_end = str(choose_end).split()[0]
+
+    testDF = data.DataReader(option, 'yahoo', choose_end, choose_date)
+    while testDF.shape[0] < 100:
+        choose_end = datetime.datetime.strptime(
+            choose_end, '%Y-%m-%d') - datetime.timedelta(days=100)
+        choose_end = str(choose_end).split()[0]
+        testDF = data.DataReader(option, 'yahoo', choose_end, choose_date)
+
+    testDF = testDF.drop(testDF.index[:-100])
+    testDF = testDF.reset_index()
+    check = testDF.Close.values[0]
+    array = testDF.Close.values
+    array = array.reshape(-1, 1)
+    inputPred = scaler.fit_transform(array)
+    inputPred = inputPred.reshape(1, -1)
+    pred = model.predict(inputPred)
+    pred = scaler.inverse_transform(pred)
+    finalPred = pred[0][0]
+
+    st.subheader(f'Prediction for {choose}: is {finalPred:.3f}')
 
 except:
     st.error('Error: Please enter a valid ticker symbol.')
